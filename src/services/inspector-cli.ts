@@ -1,5 +1,6 @@
 import { ResultAsync, okAsync, errAsync } from "neverthrow";
 import { execCommand, parseJson } from "../utils/result.js";
+import { createRequire } from "module";
 import type {
     InspectorError,
     TargetServer,
@@ -10,6 +11,9 @@ import type {
     PromptsListResult,
     PromptGetResult,
 } from "../types.js";
+
+const require = createRequire(import.meta.url);
+const inspectorPath = require.resolve("@modelcontextprotocol/inspector/cli/build/cli.js");
 
 /**
  * Inspector CLI method types
@@ -30,7 +34,10 @@ function buildCliArgs(
     target: TargetServer,
     methodArgs?: Record<string, unknown>
 ): string[] {
-    const args: string[] = ["@modelcontextprotocol/inspector", "--cli"];
+    const args: string[] = [inspectorPath, "--cli"];
+
+    // Add target (command or URL) - Must be first to avoid being consumed by variadic args
+    args.push(target.target);
 
     // Add method
     args.push("--method", method);
@@ -47,13 +54,30 @@ function buildCliArgs(
         }
     }
 
-    // Add method arguments as JSON
-    if (methodArgs && Object.keys(methodArgs).length > 0) {
-        args.push("--json", JSON.stringify(methodArgs));
+    // Add method specific arguments
+    if (methodArgs) {
+        if (method === "tools/call") {
+            const { name, arguments: toolArgs } = methodArgs as { name: string, arguments: Record<string, unknown> };
+            args.push("--tool-name", name);
+            if (toolArgs) {
+                for (const [key, value] of Object.entries(toolArgs)) {
+                    const val = typeof value === 'string' ? value : JSON.stringify(value);
+                    args.push("--tool-arg", `${key}=${val}`);
+                }
+            }
+        } else if (method === "resources/read") {
+            const { uri } = methodArgs as { uri: string };
+            args.push("--uri", uri);
+        } else if (method === "prompts/get") {
+            const { name, arguments: promptArgs } = methodArgs as { name: string, arguments: Record<string, string> };
+            args.push("--prompt-name", name);
+            if (promptArgs) {
+                for (const [key, value] of Object.entries(promptArgs)) {
+                    args.push("--prompt-args", `${key}=${value}`);
+                }
+            }
+        }
     }
-
-    // Add target (command or URL)
-    args.push(target.target);
 
     return args;
 }
@@ -69,7 +93,8 @@ function runInspectorCli<T>(
 ): ResultAsync<T, InspectorError> {
     const args = buildCliArgs(method, target, methodArgs);
 
-    return execCommand("npx", args, { timeoutMs: timeoutMs ?? 60000 }).andThen(
+    // Use node directly with shell: false to avoid argument parsing issues on Windows
+    return execCommand("node", args, { timeoutMs: timeoutMs ?? 60000, shell: false }).andThen(
         (output) => {
             // Inspector CLI outputs JSON to stdout
             const trimmedOutput = output.trim();

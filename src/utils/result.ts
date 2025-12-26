@@ -29,6 +29,7 @@ export function execCommand(
         cwd?: string;
         env?: Record<string, string>;
         timeoutMs?: number;
+        shell?: boolean;
     }
 ): ResultAsync<string, InspectorError> {
     return ResultAsync.fromPromise(
@@ -41,7 +42,7 @@ export function execCommand(
             const proc = spawn(command, args, {
                 cwd: options?.cwd,
                 env: { ...process.env, ...options?.env },
-                shell: true,
+                shell: options?.shell ?? true,
                 stdio: ["pipe", "pipe", "pipe"],
             });
 
