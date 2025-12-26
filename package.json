@@ -1,11 +1,14 @@
 {
-  "name": "mcpdev-mcp-server",
+  "name": "@kongyo2/mcpdevmcp",
   "version": "0.1.0",
   "description": "MCP server for MCP development assistance - helps agents develop and debug MCP servers",
   "type": "module",
   "main": "dist/index.js",
   "bin": {
-    "mcpdev-mcp-server": "dist/index.js"
+    "mcpdevmcp": "dist/index.js"
+  },
+  "publishConfig": {
+    "access": "public"
   },
   "scripts": {
     "start": "node dist/index.js",
