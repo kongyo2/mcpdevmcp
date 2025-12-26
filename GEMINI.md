@@ -1,2 +1,0 @@
-- mcpサーバーの開発を補助するmcp。
-- テストに使用するmcp(https://mcp.deepwiki.com/sse)
