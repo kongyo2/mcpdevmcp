@@ -1,6 +1,6 @@
 {
   "name": "@kongyo2/mcpdevmcp",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "MCP server for MCP development assistance - helps agents develop and debug MCP servers",
   "type": "module",
   "main": "dist/index.js",
