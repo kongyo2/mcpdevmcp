@@ -27,6 +27,49 @@ type InspectorMethod =
     | "prompts/get";
 
 /**
+ * Check if a string is a URL
+ */
+function isUrl(str: string): boolean {
+    return str.startsWith("http://") || str.startsWith("https://");
+}
+
+/**
+ * Split a command string into command and arguments
+ * Handles quoted arguments properly
+ */
+function splitCommand(command: string): string[] {
+    const parts: string[] = [];
+    let current = "";
+    let inQuotes = false;
+    let quoteChar = "";
+
+    for (let i = 0; i < command.length; i++) {
+        const char = command[i];
+
+        if ((char === '"' || char === "'") && !inQuotes) {
+            inQuotes = true;
+            quoteChar = char;
+        } else if (char === quoteChar && inQuotes) {
+            inQuotes = false;
+            quoteChar = "";
+        } else if (char === " " && !inQuotes) {
+            if (current.length > 0) {
+                parts.push(current);
+                current = "";
+            }
+        } else {
+            current += char;
+        }
+    }
+
+    if (current.length > 0) {
+        parts.push(current);
+    }
+
+    return parts;
+}
+
+/**
  * Build CLI arguments for Inspector
  */
 function buildCliArgs(
@@ -37,7 +80,14 @@ function buildCliArgs(
     const args: string[] = [inspectorPath, "--cli"];
 
     // Add target (command or URL) - Must be first to avoid being consumed by variadic args
-    args.push(target.target);
+    // For URLs, add as single argument; for commands, split into separate arguments
+    if (isUrl(target.target)) {
+        args.push(target.target);
+    } else {
+        // Split command into separate arguments for stdio transport
+        const commandParts = splitCommand(target.target);
+        args.push(...commandParts);
+    }
 
     // Add method
     args.push("--method", method);
